@@ -1,0 +1,700 @@
+// CIELVO BeautyTech Marketplace Prisma Schema
+// Dual compatible: runs seamlessly in local dev, and fully mapped to MySQL 8 for production
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ==========================================
+// 1. AUTHENTICATION & USERS
+// ==========================================
+
+model User {
+  id               String    @id @default(uuid())
+  email            String    @unique
+  phone            String    @unique
+  passwordHash     String
+  role             String    @default("CUSTOMER") // CUSTOMER, SALON_OWNER, SALON_STAFF, ADMIN
+  status           String    @default("ACTIVE")   // ACTIVE, INACTIVE, SUSPENDED
+  emailVerified    Boolean   @default(false)
+  phoneVerified    Boolean   @default(false)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  // Relationships
+  customerProfile  CustomerProfile?
+  ownedSalons      Salon[]          @relation("SalonOwner")
+  staffProfile     SalonStaff?      @relation("StaffUser")
+  sessions         Session[]
+  notifications    Notification[]
+  auditLogs        AdminAuditLog[]
+  supportTickets   SupportTicket[]
+  assignedTickets  SupportTicket[]  @relation("AssignedAdmin")
+  ticketMessages   SupportMessage[]
+}
+
+model Session {
+  id         String   @id @default(uuid())
+  userId     String
+  token      String   @unique
+  expiresAt  DateTime
+  userAgent  String?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationCode {
+  id         String   @id @default(uuid())
+  target     String   // email or mobile number
+  type       String   // EMAIL_VERIFY, PHONE_VERIFY, PASSWORD_RESET
+  codeHash   String
+  expiresAt  DateTime
+  verifiedAt DateTime?
+  attempts   Int      @default(0)
+  createdAt  DateTime @default(now())
+}
+
+// ==========================================
+// 2. CUSTOMERS
+// ==========================================
+
+model CustomerProfile {
+  id             String            @id @default(uuid())
+  userId         String            @unique
+  fullName       String
+  avatarUrl      String?
+  defaultState   String?
+  defaultCity    String?
+  defaultPincode String?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  user           User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  addresses      CustomerAddress[]
+  favourites     CustomerFavourite[]
+  bookings       Booking[]
+  reviews        Review[]
+}
+
+model CustomerAddress {
+  id             String    @id @default(uuid())
+  customerId     String
+  label          String    @default("Home") // Home, Work, Other
+  addressLine1   String
+  addressLine2   String?
+  landmark       String?
+  locality       String
+  city           String
+  state          String
+  postalCode     String
+  latitude       Float?
+  longitude      Float?
+  isDefault      Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  customer       CustomerProfile @relation(fields: [customerId], references: [id], onDelete: Cascade)
+}
+
+model CustomerFavourite {
+  id         String   @id @default(uuid())
+  customerId String
+  salonId    String
+  createdAt  DateTime @default(now())
+
+  customer   CustomerProfile @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  salon      Salon           @relation(fields: [salonId], references: [id], onDelete: Cascade)
+
+  @@unique([customerId, salonId])
+}
+
+// ==========================================
+// 3. INDIA-WIDE GEOGRAPHIC HIERARCHY
+// ==========================================
+
+model Country {
+  id        String   @id @default(uuid())
+  code      String   @unique // IN
+  name      String   @default("India")
+  phoneCode String   @default("+91")
+  states    State[]
+}
+
+model State {
+  id               String       @id @default(uuid())
+  countryId        String
+  name             String       @unique
+  code             String       @unique // e.g. MH, DL, KA, TN
+  isUnionTerritory Boolean      @default(false)
+  isActive         Boolean      @default(true)
+
+  country          Country      @relation(fields: [countryId], references: [id])
+  districts        District[]
+  cities           City[]
+  postalCodes      PostalCode[]
+}
+
+model District {
+  id        String   @id @default(uuid())
+  stateId   String
+  name      String
+  code      String?
+  isActive  Boolean  @default(true)
+
+  state     State    @relation(fields: [stateId], references: [id], onDelete: Cascade)
+  cities    City[]
+
+  @@unique([stateId, name])
+}
+
+model City {
+  id          String       @id @default(uuid())
+  districtId  String?
+  stateId     String
+  name        String
+  tier        Int          @default(1) // 1, 2, 3
+  latitude    Float?
+  longitude   Float?
+  isActive    Boolean      @default(true)
+
+  state       State        @relation(fields: [stateId], references: [id])
+  district    District?    @relation(fields: [districtId], references: [id])
+  localities  Locality[]
+  postalCodes PostalCode[]
+  locations   SalonLocation[]
+
+  @@unique([stateId, name])
+}
+
+model Locality {
+  id         String   @id @default(uuid())
+  cityId     String
+  name       String
+  postalCode String?
+  latitude   Float?
+  longitude  Float?
+  isActive   Boolean  @default(true)
+
+  city       City     @relation(fields: [cityId], references: [id], onDelete: Cascade)
+
+  @@unique([cityId, name])
+}
+
+model PostalCode {
+  id           String   @id @default(uuid())
+  code         String   // 6-digit PIN code
+  cityId       String
+  stateId      String
+  localityName String?
+  latitude     Float?
+  longitude    Float?
+  isActive     Boolean  @default(true)
+
+  city         City     @relation(fields: [cityId], references: [id])
+  state        State    @relation(fields: [stateId], references: [id])
+
+  @@unique([code, localityName])
+}
+
+// Location Interest Registrations (for unserviceable areas)
+model LocationInterest {
+  id        String   @id @default(uuid())
+  state     String
+  city      String
+  pincode   String?
+  email     String?
+  phone     String?
+  createdAt DateTime @default(now())
+}
+
+// ==========================================
+// 4. SALONS & BRANCHES
+// ==========================================
+
+model Salon {
+  id                 String          @id @default(uuid())
+  ownerId            String
+  businessName       String
+  slug               String          @unique
+  registrationNumber String?
+  description        String
+  logoUrl            String?
+  coverImageUrl      String?
+  status             String          @default("PENDING_APPROVAL") // PENDING_APPROVAL, APPROVED, REJECTED, SUSPENDED
+  approvedAt         DateTime?
+  rejectionReason    String?
+  rating             Float           @default(5.0)
+  reviewCount        Int             @default(0)
+  allowInSalon       Boolean         @default(true)
+  allowAtHome        Boolean         @default(false)
+  isFeatured         Boolean         @default(false)
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  owner              User            @relation("SalonOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  locations          SalonLocation[]
+  documents          SalonDocument[]
+  salonServices      SalonService[]
+  bookings           Booking[]
+  favourites         CustomerFavourite[]
+  reviews            Review[]
+  paymentRecords     PaymentRecord[]
+}
+
+model SalonLocation {
+  id               String              @id @default(uuid())
+  salonId          String
+  branchName       String
+  phone            String
+  email            String?
+  addressLine      String
+  locality         String
+  cityId           String?
+  city             String
+  district         String?
+  state            String
+  postalCode       String
+  latitude         Float
+  longitude        Float
+  serviceRadiusKm  Float               @default(10.0)
+  allowAtHome      Boolean             @default(false)
+  isActive         Boolean             @default(true)
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  salon            Salon               @relation(fields: [salonId], references: [id], onDelete: Cascade)
+  cityRef          City?               @relation(fields: [cityId], references: [id])
+  hours            SalonHours[]
+  staff            SalonStaff[]
+  salonServices    SalonService[]
+  serviceAreas     SalonServiceArea[]
+  bookings         Booking[]
+  paymentRecords   PaymentRecord[]
+  reviews          Review[]
+}
+
+model SalonHours {
+  id          String        @id @default(uuid())
+  locationId  String
+  dayOfWeek   Int           // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+  openTime    String        @default("09:00") // HH:MM
+  closeTime   String        @default("21:00") // HH:MM
+  isClosed    Boolean       @default(false)
+
+  location    SalonLocation @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@unique([locationId, dayOfWeek])
+}
+
+model SalonDocument {
+  id              String    @id @default(uuid())
+  salonId         String
+  documentType    String    // GST_CERTIFICATE, PAN_CARD, TRADE_LICENSE, ID_PROOF
+  documentUrl     String
+  status          String    @default("PENDING") // PENDING, VERIFIED, REJECTED
+  rejectionReason String?
+  uploadedAt      DateTime  @default(now())
+  verifiedAt      DateTime?
+
+  salon           Salon     @relation(fields: [salonId], references: [id], onDelete: Cascade)
+}
+
+model SalonStaff {
+  id             String          @id @default(uuid())
+  locationId     String
+  userId         String?         @unique // Authenticated login account for staff
+  fullName       String
+  phone          String
+  email          String?
+  roleTitle      String          @default("Beauty Professional")
+  avatarUrl      String?
+  bio            String?
+  isActive       Boolean         @default(true)
+  isAvailable    Boolean         @default(true)
+  atHomeEnabled  Boolean         @default(true)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  location       SalonLocation   @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  user           User?           @relation("StaffUser", fields: [userId], references: [id])
+  assignedBookings Booking[]
+  staffServices  StaffService[]
+  availability   StaffAvailability[]
+  otpChallenges  BookingOtpChallenge[]
+}
+
+model StaffService {
+  id             String       @id @default(uuid())
+  staffId        String
+  salonServiceId String
+
+  staff          SalonStaff   @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  salonService   SalonService @relation(fields: [salonServiceId], references: [id], onDelete: Cascade)
+
+  @@unique([staffId, salonServiceId])
+}
+
+model StaffAvailability {
+  id        String     @id @default(uuid())
+  staffId   String
+  date      String     // YYYY-MM-DD
+  startTime String     // HH:MM
+  endTime   String     // HH:MM
+  isBlocked Boolean    @default(true)
+  reason    String?
+
+  staff     SalonStaff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+}
+
+model SalonServiceArea {
+  id           String        @id @default(uuid())
+  locationId   String
+  postalCode   String
+  localityName String?
+  maxDistanceKm Float        @default(10.0)
+  isActive     Boolean       @default(true)
+
+  location     SalonLocation @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@unique([locationId, postalCode])
+}
+
+// ==========================================
+// 5. SERVICES & CATEGORIES
+// ==========================================
+
+model ServiceCategory {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  slug        String    @unique
+  description String?
+  imageUrl    String?
+  iconName    String?
+  sortOrder   Int       @default(0)
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+
+  services    Service[]
+}
+
+model Service {
+  id              String          @id @default(uuid())
+  categoryId      String
+  name            String
+  slug            String          @unique
+  description     String
+  genderTarget    String          @default("UNISEX") // FEMALE, MALE, UNISEX
+  durationMinutes Int             @default(45)
+  basePrice       Float           @default(499.0)
+  allowAtHome     Boolean         @default(true)
+  allowInSalon    Boolean         @default(true)
+  isActive        Boolean         @default(true)
+  createdAt       DateTime        @default(now())
+
+  category        ServiceCategory @relation(fields: [categoryId], references: [id])
+  salonServices   SalonService[]
+}
+
+model SalonService {
+  id                    String         @id @default(uuid())
+  salonId               String
+  locationId            String
+  serviceId             String
+  customPrice           Float
+  customDurationMinutes Int
+  allowAtHome           Boolean        @default(true)
+  allowInSalon          Boolean        @default(true)
+  isActive              Boolean        @default(true)
+  createdAt             DateTime       @default(now())
+
+  salon                 Salon          @relation(fields: [salonId], references: [id], onDelete: Cascade)
+  location              SalonLocation  @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  service               Service        @relation(fields: [serviceId], references: [id])
+  staffServices         StaffService[]
+  bookings              Booking[]
+  images                ServiceImage[]
+
+  @@unique([locationId, serviceId])
+}
+
+model ServiceImage {
+  id             String       @id @default(uuid())
+  salonServiceId String
+  imageUrl       String
+  sortOrder      Int          @default(0)
+
+  salonService   SalonService @relation(fields: [salonServiceId], references: [id], onDelete: Cascade)
+}
+
+// ==========================================
+// 6. BOOKINGS WORKFLOW
+// ==========================================
+
+model Booking {
+  id                     String                 @id @default(uuid())
+  bookingNumber          String                 @unique // e.g. CLV-2026-XXXXX
+  customerId             String
+  salonId                String
+  locationId             String
+  salonServiceId         String
+  staffId                String?
+  bookingType            String                 @default("IN_SALON") // IN_SALON, AT_HOME
+  status                 String                 @default("REQUESTED")
+  // Status flow: REQUESTED -> ACCEPTED -> CONFIRMED -> PROVIDER_EN_ROUTE -> ARRIVED 
+  //              -> IDENTITY_VERIFIED -> IN_PROGRESS -> COMPLETION_PENDING -> COMPLETED
+  //              Alternative branches: REJECTED, CANCELLED, NO_SHOW, DISPUTED
+  appointmentDate        String                 // YYYY-MM-DD
+  appointmentTime        String                 // HH:MM
+  serviceDurationMinutes Int
+  servicePrice           Float
+  totalAmount            Float
+  customerNotes          String?
+
+  // For AT_HOME bookings
+  customerAddressId      String?
+  serviceAddressSnapshot String?                // Full address string captured at time of booking
+  customerLatitude       Float?
+  customerLongitude      Float?
+
+  // Rejection / Cancellation
+  cancellationReason     String?
+  cancelledBy            String?                // CUSTOMER, SALON, ADMIN
+
+  // Timestamps for audit & transitions
+  acceptedAt             DateTime?
+  arrivedAt              DateTime?
+  verifiedAt             DateTime?
+  startedAt              DateTime?
+  completedAt            DateTime?
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
+
+  customer               CustomerProfile        @relation(fields: [customerId], references: [id])
+  salon                  Salon                  @relation(fields: [salonId], references: [id])
+  location               SalonLocation          @relation(fields: [locationId], references: [id])
+  salonService           SalonService           @relation(fields: [salonServiceId], references: [id])
+  assignedStaff          SalonStaff?            @relation(fields: [staffId], references: [id])
+  items                  BookingItem[]
+  statusHistory          BookingStatusHistory[]
+  otpChallenges          BookingOtpChallenge[]
+  paymentRecord          PaymentRecord?
+  review                 Review?
+}
+
+model BookingItem {
+  id              String   @id @default(uuid())
+  bookingId       String
+  serviceName     String
+  categoryName    String
+  price           Float
+  durationMinutes Int
+
+  booking         Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+}
+
+model BookingStatusHistory {
+  id              String   @id @default(uuid())
+  bookingId       String
+  fromStatus      String?
+  toStatus        String
+  changedByUserId String?
+  notes           String?
+  createdAt       DateTime @default(now())
+
+  booking         Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+}
+
+// ==========================================
+// 7. TWO-WAY DOORSTEP OTP VERIFICATION
+// ==========================================
+
+model BookingOtpChallenge {
+  id                       String               @id @default(uuid())
+  bookingId                String               @unique
+  staffId                  String
+  customerId               String
+  // Hashed 6-digit OTPs
+  customerOtpHashed        String               // Given to customer, verified by staff
+  professionalOtpHashed    String               // Given to staff, verified by customer
+  // Verification states
+  customerOtpVerified      Boolean              @default(false)
+  professionalOtpVerified  Boolean              @default(false)
+  failedAttemptsCustomer   Int                  @default(0)
+  failedAttemptsProfessional Int                @default(0)
+  isLocked                 Boolean              @default(false)
+  expiresAt                DateTime             // 5-minute expiry
+  verifiedAt               DateTime?
+  createdAt                DateTime             @default(now())
+
+  booking                  Booking              @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  staff                    SalonStaff           @relation(fields: [staffId], references: [id])
+  attemptLogs              OtpAttemptLog[]
+}
+
+model OtpAttemptLog {
+  id                 String              @id @default(uuid())
+  challengeId        String
+  attemptType        String              // CUSTOMER_CODE, PROFESSIONAL_CODE
+  submittedByUserId  String
+  isSuccessful       Boolean
+  failureReason      String?
+  ipAddress          String?
+  userAgent          String?
+  attemptedAt        DateTime            @default(now())
+
+  challenge          BookingOtpChallenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+}
+
+// ==========================================
+// 8. DIRECT PAYMENTS
+// ==========================================
+
+model PaymentRecord {
+  id                   String        @id @default(uuid())
+  bookingId            String        @unique
+  salonId              String
+  locationId           String
+  customerId           String
+  amount               Float
+  paymentMethod        String        @default("CASH") // CASH, UPI, DIRECT_OTHER
+  paymentStatus        String        @default("NOT_PAID") // NOT_PAID, PROVIDER_REPORTED_PAID, CUSTOMER_ACKNOWLEDGED, DISPUTED
+  transactionReference String?
+  notes                String?
+  recordedByUserId     String?
+  acknowledgedAt       DateTime?
+  disputeReason        String?
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+
+  booking              Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  salon                Salon         @relation(fields: [salonId], references: [id])
+  location             SalonLocation @relation(fields: [locationId], references: [id])
+}
+
+// ==========================================
+// 9. VERIFIED REVIEWS
+// ==========================================
+
+model Review {
+  id                 String         @id @default(uuid())
+  bookingId          String         @unique
+  customerId         String
+  salonId            String
+  locationId         String
+  rating             Int            // 1 to 5
+  title              String?
+  comment            String
+  isVerifiedBooking  Boolean        @default(true)
+  moderationStatus   String         @default("APPROVED") // PENDING, APPROVED, REJECTED
+  rejectionReason    String?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  booking            Booking        @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  customer           CustomerProfile @relation(fields: [customerId], references: [id])
+  salon              Salon          @relation(fields: [salonId], references: [id])
+  location           SalonLocation  @relation(fields: [locationId], references: [id])
+  response           ReviewResponse?
+}
+
+model ReviewResponse {
+  id           String   @id @default(uuid())
+  reviewId     String   @unique
+  salonId      String
+  responseText String
+  createdAt    DateTime @default(now())
+
+  review       Review   @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+}
+
+// ==========================================
+// 10. NOTIFICATIONS & SUPPORT
+// ==========================================
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  title     String
+  message   String
+  type      String   @default("SYSTEM") // BOOKING, OTP, PAYMENT, SYSTEM
+  link      String?
+  isRead    Boolean  @default(false)
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model SupportTicket {
+  id              String           @id @default(uuid())
+  ticketNumber    String           @unique
+  userId          String
+  bookingId       String?
+  subject         String
+  description     String
+  priority        String           @default("MEDIUM") // LOW, MEDIUM, HIGH, URGENT
+  status          String           @default("OPEN")   // OPEN, IN_PROGRESS, RESOLVED, CLOSED
+  assignedAdminId String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  user            User             @relation(fields: [userId], references: [id])
+  assignedAdmin   User?            @relation("AssignedAdmin", fields: [assignedAdminId], references: [id])
+  messages        SupportMessage[]
+}
+
+model SupportMessage {
+  id        String        @id @default(uuid())
+  ticketId  String
+  senderId  String
+  message   String
+  createdAt DateTime      @default(now())
+
+  ticket    SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  sender    User          @relation(fields: [senderId], references: [id])
+}
+
+// ==========================================
+// 11. ADMINISTRATION & BANNERS
+// ==========================================
+
+model AdminAuditLog {
+  id          String   @id @default(uuid())
+  adminUserId String
+  action      String   // APPROVE_SALON, REJECT_SALON, SUSPEND_USER, MODERATE_REVIEW, UPDATE_GEO, etc.
+  entityType  String
+  entityId    String
+  detailsJson String?
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+
+  adminUser   User     @relation(fields: [adminUserId], references: [id])
+}
+
+model HomepageBanner {
+  id        String   @id @default(uuid())
+  title     String
+  subtitle  String?
+  imageUrl  String
+  linkUrl   String?
+  badgeText String?
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model PlatformSetting {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       String
+  description String?
+  updatedAt   DateTime @updatedAt
+}
