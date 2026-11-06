@@ -33,12 +33,12 @@ export default function HomeSearchHero({ categories }: HomeSearchHeroProps) {
       <div className="absolute top-0 right-1/4 w-96 h-96 bg-blush/60 rounded-full blur-3xl -z-10 pointer-events-none" />
       <div className="absolute bottom-10 left-10 w-80 h-80 bg-terracotta/10 rounded-full blur-3xl -z-10 pointer-events-none" />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
           {/* Left Column: Headlines & Search (7 Cols) */}
           <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blush border border-terracotta/25 text-aubergine text-xs font-semibold tracking-wider uppercase shadow-sm">
-              <Sparkles className="w-3.5 h-3.5 text-terracotta" />
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blush border border-terracotta/25 text-aubergine text-xs font-semibold tracking-wider uppercase shadow-sm whitespace-nowrap">
+              <Sparkles className="w-3.5 h-3.5 text-terracotta shrink-0" />
               <span>India-Wide BeautyTech Marketplace</span>
             </div>
 
@@ -65,9 +65,9 @@ export default function HomeSearchHero({ categories }: HomeSearchHeroProps) {
               <button
                 type="button"
                 onClick={() => setIsModalOpen(true)}
-                className="w-full sm:w-auto flex items-center justify-center sm:justify-start gap-2 px-4 py-2.5 rounded-xl sm:rounded-full bg-blush-light hover:bg-blush border border-terracotta/15 text-aubergine text-xs font-medium transition-colors flex-shrink-0"
+                className="w-full sm:w-auto flex items-center justify-center sm:justify-start gap-2 px-4 py-2.5 rounded-xl sm:rounded-full bg-blush-light hover:bg-blush border border-terracotta/15 text-aubergine text-xs font-medium transition-colors shrink-0 whitespace-nowrap"
               >
-                <MapPin className="w-4 h-4 text-terracotta flex-shrink-0" />
+                <MapPin className="w-4 h-4 text-terracotta shrink-0" />
                 <span className="font-semibold truncate max-w-[120px]">{location.city || 'Select City'}</span>
               </button>
 
@@ -85,9 +85,9 @@ export default function HomeSearchHero({ categories }: HomeSearchHeroProps) {
               {/* Submit Button */}
               <button
                 type="submit"
-                className="w-full sm:w-auto px-6 py-3 rounded-xl sm:rounded-full bg-aubergine hover:bg-aubergine-900 text-ivory text-xs sm:text-sm font-semibold tracking-wide flex items-center justify-center gap-2 shadow-luxury transition-all flex-shrink-0"
+                className="w-full sm:w-auto px-6 py-3 rounded-xl sm:rounded-full bg-aubergine hover:bg-aubergine-900 text-ivory text-xs sm:text-sm font-semibold tracking-wide flex items-center justify-center gap-2 shadow-luxury transition-all shrink-0 whitespace-nowrap"
               >
-                <Search className="w-4 h-4" />
+                <Search className="w-4 h-4 shrink-0" />
                 <span>Find Salons</span>
               </button>
             </form>
@@ -96,52 +96,58 @@ export default function HomeSearchHero({ categories }: HomeSearchHeroProps) {
             <div className="pt-2 flex flex-wrap gap-4 justify-center lg:justify-start">
               <Link
                 href="/explore"
-                className="px-6 py-3 rounded-full bg-aubergine text-ivory text-xs font-semibold tracking-wider uppercase hover:bg-aubergine-900 shadow-luxury transition-all flex items-center gap-2"
+                className="px-6 py-3 rounded-full bg-aubergine text-ivory text-xs font-semibold tracking-wider uppercase hover:bg-aubergine-900 shadow-luxury transition-all flex items-center gap-2 shrink-0 whitespace-nowrap"
               >
                 <span>Explore Salons</span>
-                <ArrowRight className="w-3.5 h-3.5 text-gold" />
+                <ArrowRight className="w-3.5 h-3.5 text-gold shrink-0" />
               </Link>
               <Link
                 href="/at-home"
-                className="px-6 py-3 rounded-full bg-ivory-pure border border-terracotta/30 text-terracotta hover:bg-blush/40 text-xs font-semibold tracking-wider uppercase transition-all flex items-center gap-2 shadow-sm"
+                className="px-6 py-3 rounded-full bg-ivory-pure border border-terracotta/30 text-terracotta hover:bg-blush/40 text-xs font-semibold tracking-wider uppercase transition-all flex items-center gap-2 shadow-sm shrink-0 whitespace-nowrap"
               >
-                <Home className="w-3.5 h-3.5" />
+                <Home className="w-3.5 h-3.5 shrink-0" />
                 <span>At-Home Services</span>
               </Link>
             </div>
           </div>
 
-          {/* Right Column: Premium Hero Visuals (5 Cols) */}
+          {/* Right Column: Premium Hero Visuals (5 Cols) - Perfectly Framed CIELVO Identity */}
           <div className="lg:col-span-5 relative">
-            <div className="relative mx-auto max-w-sm sm:max-w-md aspect-[4/5] rounded-3xl overflow-hidden shadow-luxury-lg border-2 border-terracotta/20">
-              <Image
-                src="/images/brand/cielvo-logo-full-blush.jpg"
-                alt="CIELVO Beauty & Salon Experience"
-                fill
-                priority
-                className="object-cover"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-aubergine/80 via-transparent to-transparent" />
+            <div className="relative mx-auto max-w-sm sm:max-w-md lg:max-w-lg">
+              {/* Outer Luxury Card with subtle glow */}
+              <div className="relative rounded-3xl overflow-hidden shadow-luxury-xl border-2 border-terracotta/25 bg-ivory-warm p-3 sm:p-4 transition-all">
+                {/* 100% Unclipped, Perfectly Visible Logo Canvas */}
+                <div className="relative w-full aspect-[3/2] rounded-2xl overflow-hidden bg-blush shadow-sm border border-terracotta/15">
+                  <Image
+                    src="/images/brand/cielvo-logo-full-blush.jpg"
+                    alt="CIELVO - Your beauty. Your way."
+                    fill
+                    priority
+                    unoptimized
+                    className="object-contain"
+                  />
+                </div>
 
-              {/* Floating Pill 1: Verified Salons */}
-              <div className="absolute top-6 left-6 p-3 rounded-2xl bg-ivory/95 backdrop-blur-md shadow-luxury border border-terracotta/20 flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-terracotta flex items-center justify-center text-ivory">
-                  <ShieldCheck className="w-5 h-5" />
+                {/* Floating Pill 1: Verified Salons */}
+                <div className="absolute top-6 left-6 p-2.5 sm:p-3 rounded-2xl bg-ivory/95 backdrop-blur-md shadow-luxury-lg border border-terracotta/20 flex items-center gap-2.5 z-10">
+                  <div className="w-8 h-8 rounded-xl bg-terracotta flex items-center justify-center text-ivory shrink-0">
+                    <ShieldCheck className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-aubergine leading-none">100% Verified Salons</p>
+                    <p className="text-[10px] text-aubergine/70 mt-0.5 leading-none">Certified Employees Only</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-xs font-bold text-aubergine">100% Verified Salons</p>
-                  <p className="text-[10px] text-aubergine/70">Certified Employees Only</p>
-                </div>
-              </div>
 
-              {/* Floating Pill 2: Direct Payment */}
-              <div className="absolute bottom-6 right-6 p-3 rounded-2xl bg-ivory/95 backdrop-blur-md shadow-luxury border border-terracotta/20 flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-aubergine flex items-center justify-center text-gold">
-                  <Sparkles className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-aubergine">Direct Salon Payment</p>
-                  <p className="text-[10px] text-aubergine/70">Cash or UPI after service</p>
+                {/* Floating Pill 2: Direct Payment */}
+                <div className="absolute bottom-6 right-6 p-2.5 sm:p-3 rounded-2xl bg-ivory/95 backdrop-blur-md shadow-luxury-lg border border-terracotta/20 flex items-center gap-2.5 z-10">
+                  <div className="w-8 h-8 rounded-xl bg-aubergine flex items-center justify-center text-gold shrink-0">
+                    <Sparkles className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-aubergine leading-none">Direct Salon Payment</p>
+                    <p className="text-[10px] text-aubergine/70 mt-0.5 leading-none">Cash or UPI after service</p>
+                  </div>
                 </div>
               </div>
             </div>

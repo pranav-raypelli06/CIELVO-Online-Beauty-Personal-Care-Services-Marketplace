@@ -88,12 +88,10 @@ export default function RegisterCustomerPage() {
       <div className="w-full max-w-lg space-y-8 bg-ivory-pure p-8 sm:p-10 rounded-3xl border border-terracotta/20 shadow-luxury-lg">
         {/* Brand Header */}
         <div className="text-center space-y-2">
-          <Link href="/" className="inline-block relative w-48 h-14">
+          <Link href="/" className="inline-block relative w-56 sm:w-64 h-16">
             <Image
               src="/images/brand/cielvo-logo-wordmark.png"
-              alt="CIELVO"
-              fill
-              className="object-contain"
+              alt="CIELVO - Your beauty. Your way." fill priority unoptimized className="object-contain"
             />
           </Link>
           <h2 className="text-2xl font-serif font-bold text-aubergine">Join CIELVO</h2>
