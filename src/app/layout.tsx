@@ -7,7 +7,7 @@ import Footer from '@/components/layout/Footer';
 import LocationModal from '@/components/ui/LocationModal';
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://cielvo.vercel.app'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://cielvo-online-beauty-personal-care.vercel.app'),
   title: {
     default: 'CIELVO — Your beauty. Your way. | India-Wide BeautyTech Marketplace',
     template: '%s | CIELVO',
