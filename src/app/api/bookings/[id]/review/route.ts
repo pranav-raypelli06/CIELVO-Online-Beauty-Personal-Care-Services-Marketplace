@@ -3,17 +3,18 @@ import prisma from '@/lib/prisma';
 import { requireAuth } from '@/lib/auth';
 import { submitReviewSchema } from '@/lib/validations';
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const authResult = await requireAuth(req, ['CUSTOMER']);
     if (authResult instanceof NextResponse) return authResult;
     const { user } = authResult;
 
     const body = await req.json();
-    const validated = submitReviewSchema.parse({ ...body, bookingId: params.id });
+    const { id } = await params;
+    const validated = submitReviewSchema.parse({ ...body, bookingId: id });
 
     const booking = await prisma.booking.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: { review: true },
     });
 

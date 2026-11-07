@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getSessionUser } from '@/lib/auth';
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const identifier = params.id;
+    const { id } = await params;
+    const identifier = id;
     const session = await getSessionUser(req);
 
     const salon = await prisma.salon.findFirst({

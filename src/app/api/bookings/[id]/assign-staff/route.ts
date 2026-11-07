@@ -3,7 +3,7 @@ import prisma from '@/lib/prisma';
 import { requireAuth } from '@/lib/auth';
 import { assignStaffSchema } from '@/lib/validations';
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const authResult = await requireAuth(req, ['SALON_OWNER', 'ADMIN']);
     if (authResult instanceof NextResponse) return authResult;
@@ -13,7 +13,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const validated = assignStaffSchema.parse(body);
 
     const booking = await prisma.booking.findUnique({
-      where: { id: params.id },
+      where: { id: (await params).id },
       include: {
         salon: true,
         customer: { include: { user: true } },

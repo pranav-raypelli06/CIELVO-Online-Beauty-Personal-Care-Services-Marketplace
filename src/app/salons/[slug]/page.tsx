@@ -24,7 +24,7 @@ import {
 import { useAuth } from '@/context/AuthContext';
 import { useLocation } from '@/context/LocationContext';
 
-export default function SalonProfilePage({ params }: { params: { slug: string } }) {
+export default function SalonProfilePage({ params }: { params: Promise<{ slug: string }> }) {
   const router = useRouter();
   const { user, isAuthenticated } = useAuth();
   const { location: userLocation } = useLocation();
@@ -57,7 +57,7 @@ export default function SalonProfilePage({ params }: { params: { slug: string } 
   const [bookingSuccess, setBookingSuccess] = useState<any>(null);
 
   useEffect(() => {
-    fetch(`/api/salons/${params.slug}`)
+    Promise.resolve(params).then((p) => fetch(`/api/salons/${p.slug}`))
       .then((res) => res.json())
       .then((data) => {
         if (data.salon) {
@@ -69,7 +69,7 @@ export default function SalonProfilePage({ params }: { params: { slug: string } 
       })
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, [params.slug]);
+  }, [params]);
 
   if (loading) {
     return (
@@ -100,7 +100,7 @@ export default function SalonProfilePage({ params }: { params: { slug: string } 
 
   const handleOpenBooking = (srv: any) => {
     if (!isAuthenticated) {
-      router.push(`/auth/login?redirect=/salons/${params.slug}`);
+      router.push(`/auth/login?redirect=/salons/${salon?.slug || ''}`);
       return;
     }
     setSelectedService(srv);

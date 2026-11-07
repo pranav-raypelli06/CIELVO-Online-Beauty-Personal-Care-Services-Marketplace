@@ -9,7 +9,7 @@ import {
 import { sendOtpSms } from '@/lib/sms';
 import { verifyOtpSchema } from '@/lib/validations';
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const authResult = await requireAuth(req);
     if (authResult instanceof NextResponse) return authResult;
@@ -19,7 +19,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const action = searchParams.get('action') || 'generate'; // generate, verify-customer, verify-professional
 
     const booking = await prisma.booking.findUnique({
-      where: { id: params.id },
+      where: { id: (await params).id },
       include: {
         assignedStaff: { include: { user: true } },
         customer: { include: { user: true } },

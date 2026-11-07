@@ -81,7 +81,7 @@ export async function getSessionUser(req?: NextRequest): Promise<TokenPayload | 
   } else {
     // Read from server action / server component cookies
     try {
-      const cookieStore = cookies();
+      const cookieStore = await cookies();
       token = cookieStore.get(TOKEN_NAME)?.value;
     } catch (e) {
       // not in request scope

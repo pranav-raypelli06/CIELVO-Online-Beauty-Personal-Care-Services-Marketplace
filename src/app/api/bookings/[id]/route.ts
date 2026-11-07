@@ -3,14 +3,14 @@ import prisma from '@/lib/prisma';
 import { requireAuth } from '@/lib/auth';
 import { getGoogleMapsNavigationUrl } from '@/lib/maps';
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const authResult = await requireAuth(req);
     if (authResult instanceof NextResponse) return authResult;
     const { user } = authResult;
 
     const booking = await prisma.booking.findUnique({
-      where: { id: params.id },
+      where: { id: (await params).id },
       include: {
         salon: {
           select: {
