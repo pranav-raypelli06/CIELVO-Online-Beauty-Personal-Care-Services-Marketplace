@@ -1,7 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ShieldCheck, MapPin, Phone, Mail, Award, CheckCircle } from 'lucide-react';
+import { ShieldCheck, MapPin, Phone, Mail, CheckCircle } from 'lucide-react';
 
 export default function Footer() {
   return (
@@ -16,6 +16,7 @@ export default function Footer() {
                 src="/images/brand/cielvo-logo-wordmark.png"
                 alt="CIELVO - Your beauty. Your way."
                 fill
+                unoptimized
                 className="object-contain object-left"
               />
             </div>
@@ -100,11 +101,15 @@ export default function Footer() {
             <ul className="space-y-2.5 text-sm text-blush/75">
               <li className="flex items-center gap-2">
                 <Phone className="w-3.5 h-3.5 text-terracotta flex-shrink-0" />
-                <span>+91 8000 243586</span>
+                <a href="tel:+917264845323" className="hover:text-terracotta transition-colors">
+                  +917264845323
+                </a>
               </li>
               <li className="flex items-center gap-2">
                 <Mail className="w-3.5 h-3.5 text-terracotta flex-shrink-0" />
-                <span className="truncate">concierge@cielvo.com</span>
+                <a href="mailto:cielvotechnologies@gmail.com" className="truncate hover:text-terracotta transition-colors">
+                  cielvotechnologies@gmail.com
+                </a>
               </li>
               <li className="pt-2">
                 <Link href="/legal/privacy" className="hover:text-terracotta transition-colors block text-xs">
@@ -120,15 +125,15 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* Pan-India Geographic Coverage Bar */}
+        {/* Pan-India Geographic Coverage Bar - Cities removed */}
         <div className="py-6 border-b border-white/10 flex flex-wrap items-center justify-between gap-4 text-xs text-blush/70">
           <div className="flex items-center gap-2">
-            <MapPin className="w-4 h-4 text-terracotta" />
+            <MapPin className="w-4 h-4 text-terracotta shrink-0" />
             <span className="font-semibold text-ivory">Pan-India Availability:</span>
-            <span>Covering 28 States, 8 Union Territories, Districts & PIN Codes.</span>
+            <span>Covering all 28 States, 8 Union Territories, Districts & PIN Codes nationwide.</span>
           </div>
-          <div className="flex gap-2">
-            <span>Mumbai</span> • <span>Pune</span> • <span>Bengaluru</span> • <span>Delhi NCR</span> • <span>Hyderabad</span> • <span>Chennai</span> • <span>Kolkata</span> • <span>Ahmedabad</span> • <span>Jaipur</span>
+          <div className="text-xs text-gold font-medium">
+            Discover & Book Certified Salons Anywhere in India
           </div>
         </div>
 

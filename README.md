@@ -9,6 +9,11 @@
 
 **CIELVO** is a full-stack, production-ready BeautyTech and Personal Care Services Marketplace engineered for India-wide scale. CIELVO connects discerning customers across India with verified, high-end beauty salons and their certified salon-employed professionals for both **in-salon appointments** and **salon-fulfilled at-home doorstep treatments**.
 
+### Official Brand Contact & Ownership
+- **Company**: CIELVO Technologies Private Limited
+- **Support & Inquiries**: [cielvotechnologies@gmail.com](mailto:cielvotechnologies@gmail.com)
+- **Contact Helpline**: [+917264845323](tel:+917264845323)
+
 ### Official Brand Assets & Design System
 CIELVO features a distinctive, luxury-accessible visual identity built on the approved brand assets:
 - **Brand Wordmark (`assets/brand/cielvo-logo-wordmark.png`)**: High-resolution transparent PNG with custom serif typography (`Playfair Display` / `Cormorant Garamond`) and horizontal tagline flanking rules.
@@ -35,14 +40,14 @@ CIELVO is architected for national scale from day one, covering all Indian state
 ```
 India (Country)
  └── State / Union Territory (All 28 States + 8 UTs)
-      └── District (e.g., Mumbai Suburban, Pune, Bengaluru Urban, New Delhi)
-           └── City / Town (e.g., Mumbai, Pune, Bengaluru, New Delhi, Hyderabad, Chennai)
-                └── Locality / Neighbourhood (e.g., Bandra West, Koregaon Park, Indiranagar, Connaught Place)
+      └── District (e.g., Mumbai Suburban, Pune, Bengaluru Urban, New Delhi, Hyderabad, Chennai, Kolkata, Ahmedabad, Jaipur)
+           └── City / Town
+                └── Locality / Neighbourhood
                      └── Postal Code / PIN Code (6-Digit Indian Postal Index)
 ```
 
 ### Dynamic Location Selection & Demand Capture
-- **Manual State & City Navigation**: Switch between Indian metropolitan and tier-2/tier-3 cities at any time via the persistent top navigation bar.
+- **Manual State & City Navigation**: Switch between Indian cities at any time via the persistent top navigation bar.
 - **PIN Code Search**: Direct lookup by 6-digit Indian PIN codes.
 - **Device Geolocation (GPS)**: Browser geolocation with distance calculation using the spherical Haversine formula.
 - **"CIELVO is coming to your area soon"**: When a customer selects an area where active salons have not yet launched, the platform automatically renders an elegant waitlist capture form allowing customers to register interest, notifying admins of emerging geographic demand.
@@ -114,18 +119,16 @@ CIELVO operates on a clean **direct-to-salon payment model**:
 
 ---
 
-## 6. Role-Based Portals & Demo Credentials
+## 6. Role-Based Portals & Production Administrator
 
-The platform provides 4 specialized role-based experiences:
+The platform is clean and production-ready to collect real registrations and bookings. The platform administrator credentials are:
 
-| Role | Portal Path | Pre-Seeded Demo Account | Password | Primary Capabilities |
+| Role | Portal Path | Production Account | Password | Primary Capabilities |
 | :--- | :--- | :--- | :--- | :--- |
-| **Super Admin** | `/admin/dashboard` | `admin@cielvo.com` | `AdminPassword@2026` | Approve/reject salon partner applications, monitor India-wide bookings, audit safety challenges, manage geographic records. |
-| **Salon Owner** | `/salon/dashboard` | `owner.aura@cielvo.com` | `CielvoPass@2026` | Multi-branch management, service catalogue pricing, accept/reject booking requests, assign certified staff, record direct payments. |
-| **Salon Staff** | `/staff/dashboard` | `staff.meera@cielvo.com` | `CielvoPass@2026` | View daily itinerary, reveal client address on dispatch, trigger "I've Arrived", verify doorstep OTPs, execute treatments. |
-| **Customer** | `/customer/dashboard` | `priya@cielvo.com` | `CielvoPass@2026` | Discover salons across India, book in-salon & at-home appointments, track live appointment state, verify professional OTP, submit verified reviews. |
+| **Super Admin** | `/admin/dashboard` | `cielvotechnologies@gmail.com` | `AdminPassword@2026` | Approve/reject salon partner applications, monitor India-wide bookings, audit safety challenges, manage geographic records. |
+| **Admin Alias** | `/admin/dashboard` | `admin@cielvo.com` | `AdminPassword@2026` | Secondary system administrator login. |
 
-*Note: For testing convenience, the `/auth/login` page features a 1-click **Quick Demo Login** selector that auto-fills credentials for any of the 4 roles.*
+*All mock customer, salon, and staff records have been removed. Real salons can apply at `/auth/register-salon`, and real customers can create accounts at `/auth/register`.*
 
 ---
 
@@ -138,11 +141,11 @@ The platform provides 4 specialized role-based experiences:
 ├── prisma/
 │   ├── schema.prisma              # Active schema for local development (SQLite)
 │   ├── schema.mysql.prisma        # Production-ready schema for MySQL 8 deployment
-│   └── seed.js                    # Comprehensive seed script (36 States/UTs, salons, services, users)
+│   └── seed.js                    # Production foundation seed script (36 States/UTs, master categories & services, admin)
 ├── public/
 │   └── images/brand/              # Publicly served brand logos & icons
 ├── scripts/
-│   └── test-e2e.js                # 21-point automated integration test suite
+│   └── test-e2e.js                # 21-point automated integration test suite (ephemeral lifecycle verification)
 ├── src/
 │   ├── app/
 │   │   ├── (public)/              # Homepage, /explore, /salons/[slug], /services, /at-home, /about, /offers
@@ -153,10 +156,9 @@ The platform provides 4 specialized role-based experiences:
 │   │   ├── salon/                 # Salon owner portal (branches, services, staff, bookings, payments)
 │   │   └── staff/                 # Salon professional mobile-first appointment dashboard
 │   ├── components/
-│   │   ├── BrandLogo.tsx          # Consistent brand mark with tagline
-│   │   ├── LocationSelectorModal.tsx # India-wide state/city/PIN picker with interest capture
-│   │   ├── Navbar.tsx             # Responsive global navigation with auth detection
-│   │   └── Footer.tsx             # Global luxury footer with legal links
+│   │   ├── layout/Navbar.tsx      # Reframed single-line luxury header
+│   │   ├── layout/Footer.tsx      # Clean footer with official contact and Pan-India coverage
+│   │   └── ui/                    # Search heroes, location modal, filter bars
 │   └── lib/
 │       ├── auth.ts                # Session management, JWT, bcrypt, role-based guards
 │       ├── maps.ts                # Haversine distance & Google Maps navigation links
@@ -171,23 +173,7 @@ The platform provides 4 specialized role-based experiences:
 
 ## 8. Verification & Test Suite
 
-CIELVO includes a rigorous automated end-to-end integration test suite (`scripts/test-e2e.js`) covering:
-1. **India-Wide Geography**: Confirms all 36 States/UTs, districts, and 6-digit Indian PIN codes exist.
-2. **Multi-Role Authentication**: Validates Admin, Salon Owner, Salon Staff, and Customer credential profiles.
-3. **Multi-Branch Operations**: Verifies salon multi-branch cross-state listing (e.g. Aura Mumbai & Bengaluru).
-4. **End-to-End Booking Lifecycle**:
-   - Customer places an `AT_HOME` appointment request.
-   - Salon owner accepts and assigns a background-verified professional.
-   - Professional arrives at the customer's doorstep.
-   - Dual cryptographic OTP challenge is issued.
-   - Incorrect OTP attempts are securely rejected.
-   - Valid OTPs are verified, transitioning status to `IDENTITY_VERIFIED`.
-   - Treatment is marked `COMPLETED`.
-   - Direct UPI payment is recorded by the salon and acknowledged by the customer.
-   - Verified customer review is published and impacts the salon's aggregate rating.
-5. **Administrative Moderation**: Validates administrative audit log entries.
-
-Run the test suite anytime:
+CIELVO includes a rigorous automated end-to-end integration test suite (`scripts/test-e2e.js`):
 ```bash
 npm test
 ```
@@ -209,6 +195,7 @@ NEXT_PUBLIC_GOOGLE_MAPS_API_KEY="<YOUR_GOOGLE_MAPS_KEY>"
 MSG91_AUTH_KEY="<YOUR_MSG91_KEY>"
 MSG91_SENDER_ID="CIELVO"
 RESEND_API_KEY="<YOUR_RESEND_KEY>"
+EMAIL_FROM="CIELVO <cielvotechnologies@gmail.com>"
 NODE_ENV="production"
 ```
 
@@ -217,7 +204,7 @@ NODE_ENV="production"
 npx prisma db push --schema=prisma/schema.mysql.prisma
 ```
 
-### Step 3: Seed Geographic Data & Initial Admin Account
+### Step 3: Seed Geographic Foundation & Admin Account
 ```bash
 npm run prisma:seed
 ```
@@ -227,13 +214,3 @@ npm run prisma:seed
 npm run build
 npm run start
 ```
-
----
-
-## 10. Summary of Architectural Guarantees
-
-- **No Hardcoded Geographies**: The platform is unbounded and handles registrations, discovery, and interest capture across all 36 Indian states and Union Territories.
-- **Genuine Brand Heritage**: Approved CIELVO logo marks, color tokens, and typography are respected across every screen.
-- **Real Backend Operations**: No decorative fake actions. Every button click performs transactional database changes with Zod validations and audit trails.
-- **Uncompromised Doorstep Security**: At-home treatments strictly enforce mutual two-way OTP verification before services can begin.
-- **Zero Commission Escrow**: 100% direct salon payments (UPI/Cash), keeping cash flow immediately with salon partners.
