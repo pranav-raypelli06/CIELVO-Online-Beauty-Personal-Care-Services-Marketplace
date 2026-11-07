@@ -1,8 +1,8 @@
-// CIELVO BeautyTech Marketplace Prisma Schema
-// Dual compatible: runs seamlessly in local dev, and fully mapped to MySQL 8 for production
+// CIELVO BeautyTech Marketplace - Production MySQL 8 Schema
+// Configured specifically for MySQL 8 with native types, indexes, and constraints
 
 datasource db {
-  provider = "sqlite"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
@@ -10,23 +10,18 @@ generator client {
   provider = "prisma-client-js"
 }
 
-// ==========================================
-// 1. AUTHENTICATION & USERS
-// ==========================================
-
 model User {
-  id               String    @id @default(uuid())
-  email            String    @unique
-  phone            String    @unique
-  passwordHash     String
-  role             String    @default("CUSTOMER") // CUSTOMER, SALON_OWNER, SALON_STAFF, ADMIN
-  status           String    @default("ACTIVE")   // ACTIVE, INACTIVE, SUSPENDED
+  id               String    @id @default(uuid()) @db.VarChar(36)
+  email            String    @unique @db.VarChar(191)
+  phone            String    @unique @db.VarChar(20)
+  passwordHash     String    @db.VarChar(255)
+  role             String    @default("CUSTOMER") @db.VarChar(30)
+  status           String    @default("ACTIVE") @db.VarChar(30)
   emailVerified    Boolean   @default(false)
   phoneVerified    Boolean   @default(false)
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  createdAt        DateTime  @default(now()) @db.DateTime(6)
+  updatedAt        DateTime  @updatedAt @db.DateTime(6)
 
-  // Relationships
   customerProfile  CustomerProfile?
   ownedSalons      Salon[]          @relation("SalonOwner")
   staffProfile     SalonStaff?      @relation("StaffUser")
@@ -36,102 +31,112 @@ model User {
   supportTickets   SupportTicket[]
   assignedTickets  SupportTicket[]  @relation("AssignedAdmin")
   ticketMessages   SupportMessage[]
+
+  @@index([role, status])
+  @@map("users")
 }
 
 model Session {
-  id         String   @id @default(uuid())
-  userId     String
-  token      String   @unique
-  expiresAt  DateTime
-  userAgent  String?
-  ipAddress  String?
-  createdAt  DateTime @default(now())
+  id         String   @id @default(uuid()) @db.VarChar(36)
+  userId     String   @db.VarChar(36)
+  token      String   @unique @db.VarChar(191)
+  expiresAt  DateTime @db.DateTime(6)
+  userAgent  String?  @db.VarChar(255)
+  ipAddress  String?  @db.VarChar(45)
+  createdAt  DateTime @default(now()) @db.DateTime(6)
 
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
 }
 
 model VerificationCode {
-  id         String   @id @default(uuid())
-  target     String   // email or mobile number
-  type       String   // EMAIL_VERIFY, PHONE_VERIFY, PASSWORD_RESET
-  codeHash   String
-  expiresAt  DateTime
-  verifiedAt DateTime?
+  id         String   @id @default(uuid()) @db.VarChar(36)
+  target     String   @db.VarChar(191)
+  type       String   @db.VarChar(50)
+  codeHash   String   @db.VarChar(255)
+  expiresAt  DateTime @db.DateTime(6)
+  verifiedAt DateTime? @db.DateTime(6)
   attempts   Int      @default(0)
-  createdAt  DateTime @default(now())
+  createdAt  DateTime @default(now()) @db.DateTime(6)
+
+  @@index([target, type])
+  @@map("verification_codes")
 }
 
-// ==========================================
-// 2. CUSTOMERS
-// ==========================================
-
 model CustomerProfile {
-  id             String            @id @default(uuid())
-  userId         String            @unique
-  fullName       String
-  avatarUrl      String?
-  defaultState   String?
-  defaultCity    String?
-  defaultPincode String?
-  createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @updatedAt
+  id             String            @id @default(uuid()) @db.VarChar(36)
+  userId         String            @unique @db.VarChar(36)
+  fullName       String            @db.VarChar(120)
+  avatarUrl      String?           @db.Text
+  defaultState   String?           @db.VarChar(100)
+  defaultCity    String?           @db.VarChar(100)
+  defaultPincode String?           @db.VarChar(10)
+  createdAt      DateTime          @default(now()) @db.DateTime(6)
+  updatedAt      DateTime          @updatedAt @db.DateTime(6)
 
   user           User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   addresses      CustomerAddress[]
   favourites     CustomerFavourite[]
   bookings       Booking[]
   reviews        Review[]
+
+  @@map("customer_profiles")
 }
 
 model CustomerAddress {
-  id             String    @id @default(uuid())
-  customerId     String
-  label          String    @default("Home") // Home, Work, Other
-  addressLine1   String
-  addressLine2   String?
-  landmark       String?
-  locality       String
-  city           String
-  state          String
-  postalCode     String
+  id             String    @id @default(uuid()) @db.VarChar(36)
+  customerId     String    @db.VarChar(36)
+  label          String    @default("Home") @db.VarChar(50)
+  addressLine1   String    @db.VarChar(255)
+  addressLine2   String?   @db.VarChar(255)
+  landmark       String?   @db.VarChar(150)
+  locality       String    @db.VarChar(120)
+  city           String    @db.VarChar(100)
+  state          String    @db.VarChar(100)
+  postalCode     String    @db.VarChar(10)
   latitude       Float?
   longitude      Float?
   isDefault      Boolean   @default(false)
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  createdAt      DateTime  @default(now()) @db.DateTime(6)
+  updatedAt      DateTime  @updatedAt @db.DateTime(6)
 
   customer       CustomerProfile @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+  @@index([postalCode])
+  @@map("customer_addresses")
 }
 
 model CustomerFavourite {
-  id         String   @id @default(uuid())
-  customerId String
-  salonId    String
-  createdAt  DateTime @default(now())
+  id         String   @id @default(uuid()) @db.VarChar(36)
+  customerId String   @db.VarChar(36)
+  salonId    String   @db.VarChar(36)
+  createdAt  DateTime @default(now()) @db.DateTime(6)
 
   customer   CustomerProfile @relation(fields: [customerId], references: [id], onDelete: Cascade)
   salon      Salon           @relation(fields: [salonId], references: [id], onDelete: Cascade)
 
   @@unique([customerId, salonId])
+  @@map("customer_favourites")
 }
 
-// ==========================================
-// 3. INDIA-WIDE GEOGRAPHIC HIERARCHY
-// ==========================================
-
 model Country {
-  id        String   @id @default(uuid())
-  code      String   @unique // IN
-  name      String   @default("India")
-  phoneCode String   @default("+91")
+  id        String   @id @default(uuid()) @db.VarChar(36)
+  code      String   @unique @db.VarChar(5)
+  name      String   @default("India") @db.VarChar(100)
+  phoneCode String   @default("+91") @db.VarChar(10)
   states    State[]
+
+  @@map("countries")
 }
 
 model State {
-  id               String       @id @default(uuid())
-  countryId        String
-  name             String       @unique
-  code             String       @unique // e.g. MH, DL, KA, TN
+  id               String       @id @default(uuid()) @db.VarChar(36)
+  countryId        String       @db.VarChar(36)
+  name             String       @unique @db.VarChar(100)
+  code             String       @unique @db.VarChar(10)
   isUnionTerritory Boolean      @default(false)
   isActive         Boolean      @default(true)
 
@@ -139,27 +144,30 @@ model State {
   districts        District[]
   cities           City[]
   postalCodes      PostalCode[]
+
+  @@map("states")
 }
 
 model District {
-  id        String   @id @default(uuid())
-  stateId   String
-  name      String
-  code      String?
+  id        String   @id @default(uuid()) @db.VarChar(36)
+  stateId   String   @db.VarChar(36)
+  name      String   @db.VarChar(120)
+  code      String?  @db.VarChar(10)
   isActive  Boolean  @default(true)
 
   state     State    @relation(fields: [stateId], references: [id], onDelete: Cascade)
   cities    City[]
 
   @@unique([stateId, name])
+  @@map("districts")
 }
 
 model City {
-  id          String       @id @default(uuid())
-  districtId  String?
-  stateId     String
-  name        String
-  tier        Int          @default(1) // 1, 2, 3
+  id          String       @id @default(uuid()) @db.VarChar(36)
+  districtId  String?      @db.VarChar(36)
+  stateId     String       @db.VarChar(36)
+  name        String       @db.VarChar(120)
+  tier        Int          @default(1)
   latitude    Float?
   longitude   Float?
   isActive    Boolean      @default(true)
@@ -171,13 +179,15 @@ model City {
   locations   SalonLocation[]
 
   @@unique([stateId, name])
+  @@index([name])
+  @@map("cities")
 }
 
 model Locality {
-  id         String   @id @default(uuid())
-  cityId     String
-  name       String
-  postalCode String?
+  id         String   @id @default(uuid()) @db.VarChar(36)
+  cityId     String   @db.VarChar(36)
+  name       String   @db.VarChar(150)
+  postalCode String?  @db.VarChar(10)
   latitude   Float?
   longitude  Float?
   isActive   Boolean  @default(true)
@@ -185,14 +195,16 @@ model Locality {
   city       City     @relation(fields: [cityId], references: [id], onDelete: Cascade)
 
   @@unique([cityId, name])
+  @@index([postalCode])
+  @@map("localities")
 }
 
 model PostalCode {
-  id           String   @id @default(uuid())
-  code         String   // 6-digit PIN code
-  cityId       String
-  stateId      String
-  localityName String?
+  id           String   @id @default(uuid()) @db.VarChar(36)
+  code         String   @db.VarChar(10)
+  cityId       String   @db.VarChar(36)
+  stateId      String   @db.VarChar(36)
+  localityName String?  @db.VarChar(150)
   latitude     Float?
   longitude    Float?
   isActive     Boolean  @default(true)
@@ -201,42 +213,41 @@ model PostalCode {
   state        State    @relation(fields: [stateId], references: [id])
 
   @@unique([code, localityName])
+  @@index([code])
+  @@map("postal_codes")
 }
 
-// Location Interest Registrations (for unserviceable areas)
 model LocationInterest {
-  id        String   @id @default(uuid())
-  state     String
-  city      String
-  pincode   String?
-  email     String?
-  phone     String?
-  createdAt DateTime @default(now())
-}
+  id        String   @id @default(uuid()) @db.VarChar(36)
+  state     String   @db.VarChar(100)
+  city      String   @db.VarChar(100)
+  pincode   String?  @db.VarChar(10)
+  email     String?  @db.VarChar(191)
+  phone     String?  @db.VarChar(20)
+  createdAt DateTime @default(now()) @db.DateTime(6)
 
-// ==========================================
-// 4. SALONS & BRANCHES
-// ==========================================
+  @@map("location_interests")
+}
 
 model Salon {
-  id                 String          @id @default(uuid())
-  ownerId            String
-  businessName       String
-  slug               String          @unique
-  registrationNumber String?
-  description        String
-  logoUrl            String?
-  coverImageUrl      String?
-  status             String          @default("PENDING_APPROVAL") // PENDING_APPROVAL, APPROVED, REJECTED, SUSPENDED
-  approvedAt         DateTime?
-  rejectionReason    String?
+  id                 String          @id @default(uuid()) @db.VarChar(36)
+  ownerId            String          @db.VarChar(36)
+  businessName       String          @db.VarChar(180)
+  slug               String          @unique @db.VarChar(191)
+  registrationNumber String?         @db.VarChar(80)
+  description        String          @db.Text
+  logoUrl            String?         @db.Text
+  coverImageUrl      String?         @db.Text
+  status             String          @default("PENDING_APPROVAL") @db.VarChar(30)
+  approvedAt         DateTime?       @db.DateTime(6)
+  rejectionReason    String?         @db.Text
   rating             Float           @default(5.0)
   reviewCount        Int             @default(0)
   allowInSalon       Boolean         @default(true)
   allowAtHome        Boolean         @default(false)
   isFeatured         Boolean         @default(false)
-  createdAt          DateTime        @default(now())
-  updatedAt          DateTime        @updatedAt
+  createdAt          DateTime        @default(now()) @db.DateTime(6)
+  updatedAt          DateTime        @updatedAt @db.DateTime(6)
 
   owner              User            @relation("SalonOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   locations          SalonLocation[]
@@ -246,28 +257,31 @@ model Salon {
   favourites         CustomerFavourite[]
   reviews            Review[]
   paymentRecords     PaymentRecord[]
+
+  @@index([status, isFeatured])
+  @@map("salons")
 }
 
 model SalonLocation {
-  id               String              @id @default(uuid())
-  salonId          String
-  branchName       String
-  phone            String
-  email            String?
-  addressLine      String
-  locality         String
-  cityId           String?
-  city             String
-  district         String?
-  state            String
-  postalCode       String
+  id               String              @id @default(uuid()) @db.VarChar(36)
+  salonId          String              @db.VarChar(36)
+  branchName       String              @db.VarChar(120)
+  phone            String              @db.VarChar(20)
+  email            String?             @db.VarChar(191)
+  addressLine      String              @db.VarChar(255)
+  locality         String              @db.VarChar(150)
+  cityId           String?             @db.VarChar(36)
+  city             String              @db.VarChar(100)
+  district         String?             @db.VarChar(100)
+  state            String              @db.VarChar(100)
+  postalCode       String              @db.VarChar(10)
   latitude         Float
   longitude        Float
   serviceRadiusKm  Float               @default(10.0)
   allowAtHome      Boolean             @default(false)
   isActive         Boolean             @default(true)
-  createdAt        DateTime            @default(now())
-  updatedAt        DateTime            @updatedAt
+  createdAt        DateTime            @default(now()) @db.DateTime(6)
+  updatedAt        DateTime            @updatedAt @db.DateTime(6)
 
   salon            Salon               @relation(fields: [salonId], references: [id], onDelete: Cascade)
   cityRef          City?               @relation(fields: [cityId], references: [id])
@@ -278,49 +292,58 @@ model SalonLocation {
   bookings         Booking[]
   paymentRecords   PaymentRecord[]
   reviews          Review[]
+
+  @@index([city, state])
+  @@index([postalCode])
+  @@index([latitude, longitude])
+  @@map("salon_locations")
 }
 
 model SalonHours {
-  id          String        @id @default(uuid())
-  locationId  String
-  dayOfWeek   Int           // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
-  openTime    String        @default("09:00") // HH:MM
-  closeTime   String        @default("21:00") // HH:MM
+  id          String        @id @default(uuid()) @db.VarChar(36)
+  locationId  String        @db.VarChar(36)
+  dayOfWeek   Int
+  openTime    String        @default("09:00") @db.VarChar(10)
+  closeTime   String        @default("21:00") @db.VarChar(10)
   isClosed    Boolean       @default(false)
 
   location    SalonLocation @relation(fields: [locationId], references: [id], onDelete: Cascade)
 
   @@unique([locationId, dayOfWeek])
+  @@map("salon_hours")
 }
 
 model SalonDocument {
-  id              String    @id @default(uuid())
-  salonId         String
-  documentType    String    // GST_CERTIFICATE, PAN_CARD, TRADE_LICENSE, ID_PROOF
-  documentUrl     String
-  status          String    @default("PENDING") // PENDING, VERIFIED, REJECTED
-  rejectionReason String?
-  uploadedAt      DateTime  @default(now())
-  verifiedAt      DateTime?
+  id              String    @id @default(uuid()) @db.VarChar(36)
+  salonId         String    @db.VarChar(36)
+  documentType    String    @db.VarChar(50)
+  documentUrl     String    @db.Text
+  status          String    @default("PENDING") @db.VarChar(30)
+  rejectionReason String?   @db.Text
+  uploadedAt      DateTime  @default(now()) @db.DateTime(6)
+  verifiedAt      DateTime? @db.DateTime(6)
 
   salon           Salon     @relation(fields: [salonId], references: [id], onDelete: Cascade)
+
+  @@index([salonId, status])
+  @@map("salon_documents")
 }
 
 model SalonStaff {
-  id             String          @id @default(uuid())
-  locationId     String
-  userId         String?         @unique // Authenticated login account for staff
-  fullName       String
-  phone          String
-  email          String?
-  roleTitle      String          @default("Beauty Professional")
-  avatarUrl      String?
-  bio            String?
+  id             String          @id @default(uuid()) @db.VarChar(36)
+  locationId     String          @db.VarChar(36)
+  userId         String?         @unique @db.VarChar(36)
+  fullName       String          @db.VarChar(120)
+  phone          String          @db.VarChar(20)
+  email          String?         @db.VarChar(191)
+  roleTitle      String          @default("Beauty Professional") @db.VarChar(80)
+  avatarUrl      String?         @db.Text
+  bio            String?         @db.Text
   isActive       Boolean         @default(true)
   isAvailable    Boolean         @default(true)
   atHomeEnabled  Boolean         @default(true)
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
+  createdAt      DateTime        @default(now()) @db.DateTime(6)
+  updatedAt      DateTime        @updatedAt @db.DateTime(6)
 
   location       SalonLocation   @relation(fields: [locationId], references: [id], onDelete: Cascade)
   user           User?           @relation("StaffUser", fields: [userId], references: [id])
@@ -328,91 +351,100 @@ model SalonStaff {
   staffServices  StaffService[]
   availability   StaffAvailability[]
   otpChallenges  BookingOtpChallenge[]
+
+  @@index([locationId, isActive])
+  @@map("salon_staff")
 }
 
 model StaffService {
-  id             String       @id @default(uuid())
-  staffId        String
-  salonServiceId String
+  id             String       @id @default(uuid()) @db.VarChar(36)
+  staffId        String       @db.VarChar(36)
+  salonServiceId String       @db.VarChar(36)
 
   staff          SalonStaff   @relation(fields: [staffId], references: [id], onDelete: Cascade)
   salonService   SalonService @relation(fields: [salonServiceId], references: [id], onDelete: Cascade)
 
   @@unique([staffId, salonServiceId])
+  @@map("staff_services")
 }
 
 model StaffAvailability {
-  id        String     @id @default(uuid())
-  staffId   String
-  date      String     // YYYY-MM-DD
-  startTime String     // HH:MM
-  endTime   String     // HH:MM
+  id        String     @id @default(uuid()) @db.VarChar(36)
+  staffId   String     @db.VarChar(36)
+  date      String     @db.VarChar(20)
+  startTime String     @db.VarChar(10)
+  endTime   String     @db.VarChar(10)
   isBlocked Boolean    @default(true)
-  reason    String?
+  reason    String?    @db.VarChar(255)
 
   staff     SalonStaff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@index([staffId, date])
+  @@map("staff_availability")
 }
 
 model SalonServiceArea {
-  id           String        @id @default(uuid())
-  locationId   String
-  postalCode   String
-  localityName String?
+  id           String        @id @default(uuid()) @db.VarChar(36)
+  locationId   String        @db.VarChar(36)
+  postalCode   String        @db.VarChar(10)
+  localityName String?       @db.VarChar(150)
   maxDistanceKm Float        @default(10.0)
   isActive     Boolean       @default(true)
 
   location     SalonLocation @relation(fields: [locationId], references: [id], onDelete: Cascade)
 
   @@unique([locationId, postalCode])
+  @@map("salon_service_areas")
 }
 
-// ==========================================
-// 5. SERVICES & CATEGORIES
-// ==========================================
-
 model ServiceCategory {
-  id          String    @id @default(uuid())
-  name        String    @unique
-  slug        String    @unique
-  description String?
-  imageUrl    String?
-  iconName    String?
+  id          String    @id @default(uuid()) @db.VarChar(36)
+  name        String    @unique @db.VarChar(100)
+  slug        String    @unique @db.VarChar(120)
+  description String?   @db.Text
+  imageUrl    String?   @db.Text
+  iconName    String?   @db.VarChar(50)
   sortOrder   Int       @default(0)
   isActive    Boolean   @default(true)
-  createdAt   DateTime  @default(now())
+  createdAt   DateTime  @default(now()) @db.DateTime(6)
 
   services    Service[]
+
+  @@map("service_categories")
 }
 
 model Service {
-  id              String          @id @default(uuid())
-  categoryId      String
-  name            String
-  slug            String          @unique
-  description     String
-  genderTarget    String          @default("UNISEX") // FEMALE, MALE, UNISEX
+  id              String          @id @default(uuid()) @db.VarChar(36)
+  categoryId      String          @db.VarChar(36)
+  name            String          @db.VarChar(150)
+  slug            String          @unique @db.VarChar(180)
+  description     String          @db.Text
+  genderTarget    String          @default("UNISEX") @db.VarChar(20)
   durationMinutes Int             @default(45)
   basePrice       Float           @default(499.0)
   allowAtHome     Boolean         @default(true)
   allowInSalon    Boolean         @default(true)
   isActive        Boolean         @default(true)
-  createdAt       DateTime        @default(now())
+  createdAt       DateTime        @default(now()) @db.DateTime(6)
 
   category        ServiceCategory @relation(fields: [categoryId], references: [id])
   salonServices   SalonService[]
+
+  @@index([categoryId, isActive])
+  @@map("services")
 }
 
 model SalonService {
-  id                    String         @id @default(uuid())
-  salonId               String
-  locationId            String
-  serviceId             String
+  id                    String         @id @default(uuid()) @db.VarChar(36)
+  salonId               String         @db.VarChar(36)
+  locationId            String         @db.VarChar(36)
+  serviceId             String         @db.VarChar(36)
   customPrice           Float
   customDurationMinutes Int
   allowAtHome           Boolean        @default(true)
   allowInSalon          Boolean        @default(true)
   isActive              Boolean        @default(true)
-  createdAt             DateTime       @default(now())
+  createdAt             DateTime       @default(now()) @db.DateTime(6)
 
   salon                 Salon          @relation(fields: [salonId], references: [id], onDelete: Cascade)
   location              SalonLocation  @relation(fields: [locationId], references: [id], onDelete: Cascade)
@@ -422,59 +454,53 @@ model SalonService {
   images                ServiceImage[]
 
   @@unique([locationId, serviceId])
+  @@index([salonId, isActive])
+  @@map("salon_services")
 }
 
 model ServiceImage {
-  id             String       @id @default(uuid())
-  salonServiceId String
-  imageUrl       String
+  id             String       @id @default(uuid()) @db.VarChar(36)
+  salonServiceId String       @db.VarChar(36)
+  imageUrl       String       @db.Text
   sortOrder      Int          @default(0)
 
   salonService   SalonService @relation(fields: [salonServiceId], references: [id], onDelete: Cascade)
+
+  @@map("service_images")
 }
 
-// ==========================================
-// 6. BOOKINGS WORKFLOW
-// ==========================================
-
 model Booking {
-  id                     String                 @id @default(uuid())
-  bookingNumber          String                 @unique // e.g. CLV-2026-XXXXX
-  customerId             String
-  salonId                String
-  locationId             String
-  salonServiceId         String
-  staffId                String?
-  bookingType            String                 @default("IN_SALON") // IN_SALON, AT_HOME
-  status                 String                 @default("REQUESTED")
-  // Status flow: REQUESTED -> ACCEPTED -> CONFIRMED -> PROVIDER_EN_ROUTE -> ARRIVED 
-  //              -> IDENTITY_VERIFIED -> IN_PROGRESS -> COMPLETION_PENDING -> COMPLETED
-  //              Alternative branches: REJECTED, CANCELLED, NO_SHOW, DISPUTED
-  appointmentDate        String                 // YYYY-MM-DD
-  appointmentTime        String                 // HH:MM
+  id                     String                 @id @default(uuid()) @db.VarChar(36)
+  bookingNumber          String                 @unique @db.VarChar(50)
+  customerId             String                 @db.VarChar(36)
+  salonId                String                 @db.VarChar(36)
+  locationId             String                 @db.VarChar(36)
+  salonServiceId         String                 @db.VarChar(36)
+  staffId                String?                @db.VarChar(36)
+  bookingType            String                 @default("IN_SALON") @db.VarChar(20)
+  status                 String                 @default("REQUESTED") @db.VarChar(40)
+  appointmentDate        String                 @db.VarChar(20)
+  appointmentTime        String                 @db.VarChar(10)
   serviceDurationMinutes Int
   servicePrice           Float
   totalAmount            Float
-  customerNotes          String?
+  customerNotes          String?                @db.Text
 
-  // For AT_HOME bookings
-  customerAddressId      String?
-  serviceAddressSnapshot String?                // Full address string captured at time of booking
+  customerAddressId      String?                @db.VarChar(36)
+  serviceAddressSnapshot String?                @db.Text
   customerLatitude       Float?
   customerLongitude      Float?
 
-  // Rejection / Cancellation
-  cancellationReason     String?
-  cancelledBy            String?                // CUSTOMER, SALON, ADMIN
+  cancellationReason     String?                @db.Text
+  cancelledBy            String?                @db.VarChar(30)
 
-  // Timestamps for audit & transitions
-  acceptedAt             DateTime?
-  arrivedAt              DateTime?
-  verifiedAt             DateTime?
-  startedAt              DateTime?
-  completedAt            DateTime?
-  createdAt              DateTime               @default(now())
-  updatedAt              DateTime               @updatedAt
+  acceptedAt             DateTime?              @db.DateTime(6)
+  arrivedAt              DateTime?              @db.DateTime(6)
+  verifiedAt             DateTime?              @db.DateTime(6)
+  startedAt              DateTime?              @db.DateTime(6)
+  completedAt            DateTime?              @db.DateTime(6)
+  createdAt              DateTime               @default(now()) @db.DateTime(6)
+  updatedAt              DateTime               @updatedAt @db.DateTime(6)
 
   customer               CustomerProfile        @relation(fields: [customerId], references: [id])
   salon                  Salon                  @relation(fields: [salonId], references: [id])
@@ -486,215 +512,232 @@ model Booking {
   otpChallenges          BookingOtpChallenge[]
   paymentRecord          PaymentRecord?
   review                 Review?
+
+  @@index([customerId, status])
+  @@index([salonId, status])
+  @@index([staffId, appointmentDate])
+  @@map("bookings")
 }
 
 model BookingItem {
-  id              String   @id @default(uuid())
-  bookingId       String
-  serviceName     String
-  categoryName    String
+  id              String   @id @default(uuid()) @db.VarChar(36)
+  bookingId       String   @db.VarChar(36)
+  serviceName     String   @db.VarChar(150)
+  categoryName    String   @db.VarChar(100)
   price           Float
   durationMinutes Int
 
   booking         Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@map("booking_items")
 }
 
 model BookingStatusHistory {
-  id              String   @id @default(uuid())
-  bookingId       String
-  fromStatus      String?
-  toStatus        String
-  changedByUserId String?
-  notes           String?
-  createdAt       DateTime @default(now())
+  id              String   @id @default(uuid()) @db.VarChar(36)
+  bookingId       String   @db.VarChar(36)
+  fromStatus      String?  @db.VarChar(40)
+  toStatus        String   @db.VarChar(40)
+  changedByUserId String?  @db.VarChar(36)
+  notes           String?  @db.Text
+  createdAt       DateTime @default(now()) @db.DateTime(6)
 
   booking         Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([bookingId])
+  @@map("booking_status_history")
 }
 
-// ==========================================
-// 7. TWO-WAY DOORSTEP OTP VERIFICATION
-// ==========================================
-
 model BookingOtpChallenge {
-  id                       String               @id @default(uuid())
-  bookingId                String               @unique
-  staffId                  String
-  customerId               String
-  // Hashed 6-digit OTPs
-  customerOtpHashed        String               // Given to customer, verified by staff
-  professionalOtpHashed    String               // Given to staff, verified by customer
-  // Verification states
+  id                       String               @id @default(uuid()) @db.VarChar(36)
+  bookingId                String               @unique @db.VarChar(36)
+  staffId                  String               @db.VarChar(36)
+  customerId               String               @db.VarChar(36)
+  customerOtpHashed        String               @db.VarChar(255)
+  professionalOtpHashed    String               @db.VarChar(255)
   customerOtpVerified      Boolean              @default(false)
   professionalOtpVerified  Boolean              @default(false)
   failedAttemptsCustomer   Int                  @default(0)
   failedAttemptsProfessional Int                @default(0)
   isLocked                 Boolean              @default(false)
-  expiresAt                DateTime             // 5-minute expiry
-  verifiedAt               DateTime?
-  createdAt                DateTime             @default(now())
+  expiresAt                DateTime             @db.DateTime(6)
+  verifiedAt               DateTime?            @db.DateTime(6)
+  createdAt                DateTime             @default(now()) @db.DateTime(6)
 
   booking                  Booking              @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   staff                    SalonStaff           @relation(fields: [staffId], references: [id])
   attemptLogs              OtpAttemptLog[]
+
+  @@map("booking_otp_challenges")
 }
 
 model OtpAttemptLog {
-  id                 String              @id @default(uuid())
-  challengeId        String
-  attemptType        String              // CUSTOMER_CODE, PROFESSIONAL_CODE
-  submittedByUserId  String
+  id                 String              @id @default(uuid()) @db.VarChar(36)
+  challengeId        String              @db.VarChar(36)
+  attemptType        String              @db.VarChar(30)
+  submittedByUserId  String              @db.VarChar(36)
   isSuccessful       Boolean
-  failureReason      String?
-  ipAddress          String?
-  userAgent          String?
-  attemptedAt        DateTime            @default(now())
+  failureReason      String?             @db.VarChar(255)
+  ipAddress          String?             @db.VarChar(45)
+  userAgent          String?             @db.VarChar(255)
+  attemptedAt        DateTime            @default(now()) @db.DateTime(6)
 
   challenge          BookingOtpChallenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+
+  @@index([challengeId])
+  @@map("otp_attempt_logs")
 }
 
-// ==========================================
-// 8. DIRECT PAYMENTS
-// ==========================================
-
 model PaymentRecord {
-  id                   String        @id @default(uuid())
-  bookingId            String        @unique
-  salonId              String
-  locationId           String
-  customerId           String
+  id                   String        @id @default(uuid()) @db.VarChar(36)
+  bookingId            String        @unique @db.VarChar(36)
+  salonId              String        @db.VarChar(36)
+  locationId           String        @db.VarChar(36)
+  customerId           String        @db.VarChar(36)
   amount               Float
-  paymentMethod        String        @default("CASH") // CASH, UPI, DIRECT_OTHER
-  paymentStatus        String        @default("NOT_PAID") // NOT_PAID, PROVIDER_REPORTED_PAID, CUSTOMER_ACKNOWLEDGED, DISPUTED
-  transactionReference String?
-  notes                String?
-  recordedByUserId     String?
-  acknowledgedAt       DateTime?
-  disputeReason        String?
-  createdAt            DateTime      @default(now())
-  updatedAt            DateTime      @updatedAt
+  paymentMethod        String        @default("CASH") @db.VarChar(30)
+  paymentStatus        String        @default("NOT_PAID") @db.VarChar(30)
+  transactionReference String?       @db.VarChar(120)
+  notes                String?       @db.Text
+  recordedByUserId     String?       @db.VarChar(36)
+  acknowledgedAt       DateTime?     @db.DateTime(6)
+  disputeReason        String?       @db.Text
+  createdAt            DateTime      @default(now()) @db.DateTime(6)
+  updatedAt            DateTime      @updatedAt @db.DateTime(6)
 
   booking              Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   salon                Salon         @relation(fields: [salonId], references: [id])
   location             SalonLocation @relation(fields: [locationId], references: [id])
+
+  @@index([salonId, paymentStatus])
+  @@map("payment_records")
 }
 
-// ==========================================
-// 9. VERIFIED REVIEWS
-// ==========================================
-
 model Review {
-  id                 String         @id @default(uuid())
-  bookingId          String         @unique
-  customerId         String
-  salonId            String
-  locationId         String
-  rating             Int            // 1 to 5
-  title              String?
-  comment            String
+  id                 String         @id @default(uuid()) @db.VarChar(36)
+  bookingId          String         @unique @db.VarChar(36)
+  customerId         String         @db.VarChar(36)
+  salonId            String         @db.VarChar(36)
+  locationId         String         @db.VarChar(36)
+  rating             Int
+  title              String?        @db.VarChar(150)
+  comment            String         @db.Text
   isVerifiedBooking  Boolean        @default(true)
-  moderationStatus   String         @default("APPROVED") // PENDING, APPROVED, REJECTED
-  rejectionReason    String?
-  createdAt          DateTime       @default(now())
-  updatedAt          DateTime       @updatedAt
+  moderationStatus   String         @default("APPROVED") @db.VarChar(30)
+  rejectionReason    String?        @db.Text
+  createdAt          DateTime       @default(now()) @db.DateTime(6)
+  updatedAt          DateTime       @updatedAt @db.DateTime(6)
 
   booking            Booking        @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   customer           CustomerProfile @relation(fields: [customerId], references: [id])
   salon              Salon          @relation(fields: [salonId], references: [id])
   location           SalonLocation  @relation(fields: [locationId], references: [id])
   response           ReviewResponse?
+
+  @@index([salonId, moderationStatus])
+  @@map("reviews")
 }
 
 model ReviewResponse {
-  id           String   @id @default(uuid())
-  reviewId     String   @unique
-  salonId      String
-  responseText String
-  createdAt    DateTime @default(now())
+  id           String   @id @default(uuid()) @db.VarChar(36)
+  reviewId     String   @unique @db.VarChar(36)
+  salonId      String   @db.VarChar(36)
+  responseText String   @db.Text
+  createdAt    DateTime @default(now()) @db.DateTime(6)
 
   review       Review   @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
+  @@map("review_responses")
 }
 
-// ==========================================
-// 10. NOTIFICATIONS & SUPPORT
-// ==========================================
-
 model Notification {
-  id        String   @id @default(uuid())
-  userId    String
-  title     String
-  message   String
-  type      String   @default("SYSTEM") // BOOKING, OTP, PAYMENT, SYSTEM
-  link      String?
+  id        String   @id @default(uuid()) @db.VarChar(36)
+  userId    String   @db.VarChar(36)
+  title     String   @db.VarChar(180)
+  message   String   @db.Text
+  type      String   @default("SYSTEM") @db.VarChar(30)
+  link      String?  @db.VarChar(255)
   isRead    Boolean  @default(false)
-  readAt    DateTime?
-  createdAt DateTime @default(now())
+  readAt    DateTime? @db.DateTime(6)
+  createdAt DateTime @default(now()) @db.DateTime(6)
 
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@map("notifications")
 }
 
 model SupportTicket {
-  id              String           @id @default(uuid())
-  ticketNumber    String           @unique
-  userId          String
-  bookingId       String?
-  subject         String
-  description     String
-  priority        String           @default("MEDIUM") // LOW, MEDIUM, HIGH, URGENT
-  status          String           @default("OPEN")   // OPEN, IN_PROGRESS, RESOLVED, CLOSED
-  assignedAdminId String?
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  id              String           @id @default(uuid()) @db.VarChar(36)
+  ticketNumber    String           @unique @db.VarChar(50)
+  userId          String           @db.VarChar(36)
+  bookingId       String?          @db.VarChar(36)
+  subject         String           @db.VarChar(200)
+  description     String           @db.Text
+  priority        String           @default("MEDIUM") @db.VarChar(20)
+  status          String           @default("OPEN") @db.VarChar(30)
+  assignedAdminId String?          @db.VarChar(36)
+  createdAt       DateTime         @default(now()) @db.DateTime(6)
+  updatedAt       DateTime         @updatedAt @db.DateTime(6)
 
   user            User             @relation(fields: [userId], references: [id])
   assignedAdmin   User?            @relation("AssignedAdmin", fields: [assignedAdminId], references: [id])
   messages        SupportMessage[]
+
+  @@index([userId, status])
+  @@map("support_tickets")
 }
 
 model SupportMessage {
-  id        String        @id @default(uuid())
-  ticketId  String
-  senderId  String
-  message   String
-  createdAt DateTime      @default(now())
+  id        String        @id @default(uuid()) @db.VarChar(36)
+  ticketId  String        @db.VarChar(36)
+  senderId  String        @db.VarChar(36)
+  message   String        @db.Text
+  createdAt DateTime      @default(now()) @db.DateTime(6)
 
   ticket    SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
   sender    User          @relation(fields: [senderId], references: [id])
+
+  @@map("support_messages")
 }
 
-// ==========================================
-// 11. ADMINISTRATION & BANNERS
-// ==========================================
-
 model AdminAuditLog {
-  id          String   @id @default(uuid())
-  adminUserId String
-  action      String   // APPROVE_SALON, REJECT_SALON, SUSPEND_USER, MODERATE_REVIEW, UPDATE_GEO, etc.
-  entityType  String
-  entityId    String
-  detailsJson String?
-  ipAddress   String?
-  userAgent   String?
-  createdAt   DateTime @default(now())
+  id          String   @id @default(uuid()) @db.VarChar(36)
+  adminUserId String   @db.VarChar(36)
+  action      String   @db.VarChar(80)
+  entityType  String   @db.VarChar(80)
+  entityId    String   @db.VarChar(80)
+  detailsJson String?  @db.Text
+  ipAddress   String?  @db.VarChar(45)
+  userAgent   String?  @db.VarChar(255)
+  createdAt   DateTime @default(now()) @db.DateTime(6)
 
   adminUser   User     @relation(fields: [adminUserId], references: [id])
+
+  @@index([adminUserId])
+  @@index([entityType, entityId])
+  @@map("admin_audit_logs")
 }
 
 model HomepageBanner {
-  id        String   @id @default(uuid())
-  title     String
-  subtitle  String?
-  imageUrl  String
-  linkUrl   String?
-  badgeText String?
+  id        String   @id @default(uuid()) @db.VarChar(36)
+  title     String   @db.VarChar(180)
+  subtitle  String?  @db.VarChar(255)
+  imageUrl  String   @db.Text
+  linkUrl   String?  @db.VarChar(255)
+  badgeText String?  @db.VarChar(80)
   sortOrder Int      @default(0)
   isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
+  createdAt DateTime @default(now()) @db.DateTime(6)
+
+  @@map("homepage_banners")
 }
 
 model PlatformSetting {
-  id          String   @id @default(uuid())
-  key         String   @unique
-  value       String
-  description String?
-  updatedAt   DateTime @updatedAt
+  id          String   @id @default(uuid()) @db.VarChar(36)
+  key         String   @unique @db.VarChar(100)
+  value       String   @db.Text
+  description String?  @db.VarChar(255)
+  updatedAt   DateTime @updatedAt @db.DateTime(6)
+
+  @@map("platform_settings")
 }
